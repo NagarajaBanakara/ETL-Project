@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Add Employee</h2>
+
+<form method="post">
+    <input class="form-control mb-2" name="position_id" placeholder="Position ID" required>
+    <input class="form-control mb-2" name="emp_id" placeholder="Employee ID" required>
+    <input class="form-control mb-2" name="emp_name" placeholder="Employee Name" required>
+    <input class="form-control mb-2" name="email" placeholder="Email" required>
+    <input class="form-control mb-2" name="employment_status" placeholder="Employment Status" required>
+    <input type="date" class="form-control mb-2" name="effective_start_date" required>
+    <input class="form-control mb-2" name="effective_status" placeholder="Effective Status" required>
+    <input type="date" class="form-control mb-2" name="date_of_joining" required>
+    <input type="number" class="form-control mb-2" name="years_with_company" placeholder="Years with Company" required>
+
+    <button class="btn btn-success">Save</button>
+</form>
+{% endblock %}
