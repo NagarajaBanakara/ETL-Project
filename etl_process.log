@@ -1,0 +1,22 @@
+2025-07-09 22:03:17,852:INFO:ETL process started.
+2025-07-09 22:03:17,860:ERROR:Extraction failed: ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-07-09 22:03:17,860:ERROR:ETL process encountered errors.
+2025-07-09 22:03:17,860:INFO:ETL process completed.
+2025-11-16 12:49:41,376:ERROR:Extraction failed: ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 12:49:41,399:INFO:ETL Process Completed
+2025-11-16 12:51:14,513:ERROR:Extraction failed: ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 12:51:14,533:INFO:ETL Process Completed
+2025-11-16 12:56:36,813:ERROR:Extraction failed: ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 12:56:36,835:INFO:ETL Process Completed
+2025-11-16 14:16:49,308:ERROR:Extraction failed: ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 14:16:49,338:INFO:ETL Process Completed
+2025-11-16 14:24:13,776:INFO:ETL STARTED
+2025-11-16 14:24:13,777:ERROR:Extraction Failed — ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 14:24:13,788:WARNING:VALIDATION: No records to validate.
+2025-11-16 14:24:13,806:INFO:AUDIT LOG: Saved successfully.
+2025-11-16 14:24:13,807:INFO:ETL COMPLETED
+2025-11-16 14:29:19,816:INFO:ETL STARTED
+2025-11-16 14:29:19,818:ERROR:Extraction Failed — ('IM002', '[IM002] [Microsoft][ODBC Driver Manager] Data source name not found and no default driver specified (0) (SQLDriverConnect)')
+2025-11-16 14:29:19,818:WARNING:VALIDATION: No records to validate.
+2025-11-16 14:29:19,850:INFO:AUDIT LOG: Saved successfully.
+2025-11-16 14:29:19,850:INFO:ETL COMPLETED

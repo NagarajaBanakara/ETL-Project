@@ -1,12 +1,11 @@
-import datetime
-import pandas as pd
+from flask import Flask, render_template, request, redirect, url_for, flash
 import mysql.connector
-import traceback
+import datetime
 
-# =========================================
-#  MySQL Database Connection
-# =========================================
-def get_mysql_connection():
+app = Flask(__name__)
+app.secret_key = "secret123"  # needed for flash messages
+
+def get_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
@@ -14,128 +13,58 @@ def get_mysql_connection():
         database="etl"
     )
 
+@app.route("/")
+def form():
+    return render_template("form.html")
 
-start_time = datetime.datetime.now()
-records_inserted = 0
-records_deleted = 0
-status = "SUCCESS"
-error_message = ""
+@app.route("/submit", methods=["POST"])
+def submit():
+    try:
+        # Read form input
+        position_id = request.form["position_id"]
+        emp_id = request.form["emp_id"]
+        emp_name = request.form["emp_name"]
+        email = request.form["email"]
+        employment_status = request.form["employment_status"]
+        effective_start_date = request.form["effective_start_date"]
+        effective_status = request.form["effective_status"]
+        date_of_joining = request.form["date_of_joining"]
 
-conn = None
-cursor = None
+        # Compute experience
+        doj = datetime.datetime.strptime(date_of_joining, "%Y-%m-%d")
+        current_date = datetime.datetime.now()
+        years_with_company = (
+            current_date.year - doj.year -
+            ((current_date.month, current_date.day) < (doj.month, doj.day))
+        )
 
-try:
-    # Establish DB connection
-    conn = get_mysql_connection()
-    cursor = conn.cursor()
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    # =========================================
-    # STEP 1: CREATE MOCK SOURCE DATA
-    # =========================================
-    source_data = [
-        {
-            "snapshot_date": datetime.datetime.now(),
-            "position_id": "POS001",
-            "emp_id": "EMP1001",
-            "first_name": "Niya",
-            "last_name": "Sharma",
-            "email": "niya.sharma@example.com",
-            "employment_status": "Active",
-            "effective_start_date": datetime.datetime.now(),
-            "effective_status": "Active",
-            "date_of_joining": datetime.date(2020, 5, 15)
-        },
-        {
-            "snapshot_date": datetime.datetime.now(),
-            "position_id": "POS002",
-            "emp_id": "EMP1002",
-            "first_name": "Raj",
-            "last_name": "Kumar",
-            "email": "raj.kumar@example.com",
-            "employment_status": "Active",
-            "effective_start_date": datetime.datetime.now(),
-            "effective_status": "Active",
-            "date_of_joining": datetime.date(2019, 3, 20)
-        }
-    ]
-
-    df = pd.DataFrame(source_data)
-
-    # =========================================
-    # STEP 2: TRANSFORMATION
-    # =========================================
-    df["emp_name"] = df["first_name"] + " " + df["last_name"]
-    current_date = datetime.datetime.now()
-
-    df["years_with_company"] = df["date_of_joining"].apply(
-        lambda doj: current_date.year - doj.year -
-        ((current_date.month, current_date.day) < (doj.month, doj.day))
-    )
-
-    df = df.drop(["first_name", "last_name"], axis=1)
-
-    # =========================================
-    # STEP 3: INSERT DATA INTO TARGET TABLE
-    # =========================================
-
-    insert_query = """
-        INSERT INTO etl.processed_position_data (
-            snapshot_date, position_id, emp_id, emp_name, email, employment_status,
-            effective_start_date, effective_status, date_of_joining, years_with_company
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    for _, row in df.iterrows():
-        cursor.execute(insert_query, (
-            row["snapshot_date"],
-            row["position_id"],
-            row["emp_id"],
-            row["emp_name"],
-            row["email"],
-            row["employment_status"],
-            row["effective_start_date"],
-            row["effective_status"],
-            row["date_of_joining"],
-            row["years_with_company"]
-        ))
-
-    conn.commit()
-    records_inserted = len(df)
-
-except Exception as e:
-    status = "FAILED"
-    error_message = traceback.format_exc()
-
-finally:
-    end_time = datetime.datetime.now()
-    duration_sec = int((end_time - start_time).total_seconds())
-
-    # Only insert audit if DB insert attempt was made
-    if conn is not None and cursor is not None:
-        audit_query = """
-            INSERT INTO etl.etl_audit_log (
-                start_time, end_time, duration_sec, records_inserted, records_deleted, status, error_logs
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        insert_query = """
+            INSERT INTO etl.processed_position_data (
+                snapshot_date, position_id, emp_id, emp_name, email,
+                employment_status, effective_start_date, effective_status,
+                date_of_joining, years_with_company
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
-        cursor.execute(audit_query, (
-            start_time,
-            end_time,
-            duration_sec,
-            records_inserted,
-            records_deleted,
-            status,
-            error_message
+        cursor.execute(insert_query, (
+            datetime.datetime.now(), position_id, emp_id, emp_name, email,
+            employment_status, effective_start_date, effective_status,
+            date_of_joining, years_with_company
         ))
+
         conn.commit()
         cursor.close()
         conn.close()
 
-print("\n===== ETL EXECUTION RESULT =====")
-print(f"Status: {status}")
-print(f"Rows Inserted: {records_inserted}")
-print("--------------------------------")
+        flash("Employee record inserted successfully!", "success")
+        return redirect(url_for("form"))
 
-if status == "FAILED":
-    print("ERROR DETAILS:")
-    print(error_message)
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for("form"))
+
+if __name__ == "__main__":
+    app.run(debug=True)

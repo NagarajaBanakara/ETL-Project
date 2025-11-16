@@ -1,352 +1,122 @@
-1.ETL Process Design:									
+This project demonstrates a complete ETL (Extract, Transform, Load) pipeline using Python, Flask, and MySQL.
+Additionally, a web UI is provided to allow users to insert employee data into the staging table, from where it will be processed into the final target table using the ETL script.
 
-Approach to Designing the ETL Process:
-1.Requirements:
-Source table : Position_Snapshot_Data table in HANA.
-Destination Table: Processed_Position_Data table in SQL Server.
-Transformation: Concatenate the emp_name fields, calculate years_with_company, handle data type mappings, and make sure the data
-integrity.							
+Components included:
 
-2.Tools and Technologies:
-Python with libraries like pandas, pyodbc, and sqlalchemy and also SQL server.
-For Data Transformation: Utilize SQL transformations within the ETL pipeline.
-For Scheduling: Apache Airflow/cron jobs
-For logs and Notification : Implement logging using Python's logging module
-
-3. ETL Pipeline Steps:
-Extraction: Connect to HANA and extract relevant data.
-Transformation: Apply necessary SQL transformations, such as concatenating names and calculating tenure.
-Loading: Insert the transformed data into SQL Server’s Processed_Position_Data table.
-Validation: Perform data quality checks post-transformation.
-Logging & Notification: Log the ETL process details and notify stakeholders upon completion or failure.
-
-4. Tools and Technologies:
-ETL Tools:
-Python: Offers flexibility with libraries such as pandas for data manipulation, pyodbc or sqlalchemy for database connections.
-Database connection: HANA ODBC Drivers to connect HANA database and SQL server Drivers to connect sql server
-Scheduling: Apache Airflow/Cron For Python-based ETL scripts.
-Logs and Notification: Python’s logging module or SSIS’s logging features and SMTP libraries in Python or SSIS's email task.
+| Component      | Technology                             |
+| -------------- | -------------------------------------- |
+| UI Application | Flask (Python)                         |
+| Database       | MySQL                                  |
+| ETL Script     | Python                                 |
+| Data Flow      | UI → Staging Table → ETL → Final Table |
 
 
-2. Data Extraction with Transformations:											
+2. Architecture Flow
 
-Sql query to extraxt the data:
-SELECT 
-    snapshot_date,
-    position_id,
-    CONCAT(first_name, ' ', last_name) AS emp_name,
-    effective_start_date,
-    effective_status,
-    emp_id,
-    email,
-    employment_status,
-    date_of_joining,
-    DATEDIFF(year, date_of_joining, GETDATE()) AS years_with_company
-FROM 
-    Position_Snapshot_Data
-WHERE 
-    snapshot_date >= DATEADD(month, -6, GETDATE())
-    AND position_id IS NOT NULL;
+   +------------+       +------------------+       +-------------------+
+   | Flask UI   | --->  | Staging Table    | --->  | ETL Python Script |
+   | (Employee Form) |   | employee_staging |       | processed_position_data |
+   +------------+       +------------------+       +-------------------+
 
+3. Database Schema
+Table 1: employee_staging
 
-3. Data Quality and Validation Checks:											
-
-To ensuring data integrity is crucial before loading data into the destination table.
-Steps for data quality validation:
-1. Email Format Validation:
-Ensure that all email addresses conform to standard email formats to prevent invalid data entries using below sql syntax
-
-   WHERE email LIKE '%_@__%.__%'
-   
-2. Null Value Checks in Critical Fields:
-To ensure that essential fields do not contain null values, which could lead to data inconsistencies.
-critical fields such as emp_id, emp_name, position_id, date_of_joining
-To remove such kind of data we were using NOT NULL sql function
-
-3. Data Type and Range Validation
-To verify that numeric fields fall within expected ranges and dates are logical.
-
-4. Handling Future Column Additions in Destination:
-Dynamic ETL Scripts: Design ETL scripts to dynamically map columns based on metadata, allowing easy integration of new columns.
-Schema Comparison: Implement a schema comparison step to detect new columns and adjust the ETL process accordingly.
-Default Values: Assign default values or nullable constraints for new columns to prevent loading failures.
-
-4. Data Loading and Logging:											
-
-Loading Data into Processed_Position_Data Table in SQL Server:
-1. Establish Connection to SQL Server using appropriate drivers.
-2. Ensure the upsert strategy for add new records(INSERT), Modify existing records based on emp_id or position_id(UPDATE) and Remove records if necessary(DELETE).
-3.Batch Processing: Load data in batches to optimize performance and handle large datasets efficiently.
-4.Error Handling:Implement try-except blocks (in Python) or error handling within SSIS to catch and log errors.
-
-Logging Mechanism:
-Implement a comprehensive logging system to monitor the ETL process. Below is an example structure using Python's logging module and constructing an ETL dictionary.
-
-example of puthon script:
-
-import logging
-from datetime import datetime
-
-# Configure logging
-logging.basicConfig(filename='etl_process.log', level=logging.INFO,
-                    format='%(asctime)s:%(levelname)s:%(message)s')
-
-# ETL Dictionary
-etl_log = {
-    'start_time': datetime.now(),
-    'end_time': None,
-    'records_inserted': 0,
-    'records_deleted': 0,
-    'error_logs': []
-}
-
-try:
-    # ETL Process Steps
-    logging.info("ETL process started.")
-    
-    # Extraction and Transformation
-    # Example: records = extract_and_transform()
-    
-    # Loading
-    # Example: records_inserted = load_to_sql_server(records)
-    etl_log['records_inserted'] = records_inserted
-    logging.info(f"Records inserted: {records_inserted}")
-    
-    # Any Deletions
-    # Example: records_deleted = delete_records()
-    etl_log['records_deleted'] = records_deleted
-    logging.info(f"Records deleted: {records_deleted}")
-    
-except Exception as e:
-    logging.error(f"Error during ETL process: {e}")
-    etl_log['error_logs'].append(str(e))
-finally:
-    etl_log['end_time'] = datetime.now()
-    logging.info("ETL process completed.")
+CREATE TABLE employee_staging (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_id VARCHAR(20),
+    emp_name VARCHAR(50),
+    emp_dept VARCHAR(50),
+    emp_salary DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
+Table 2: processed_position_data
 
-NOTE:
-start_time: Timestamp when the ETL process begins.
-end_time: Timestamp when the ETL process ends.
-records_inserted: Number of records successfully inserted into Processed_Position_Data.
-records_deleted: Number of records deleted, if applicable.
-error_logs: List of error messages encountered during the ETL process.
+CREATE TABLE processed_position_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_id VARCHAR(20),
+    emp_name VARCHAR(50),
+    emp_dept VARCHAR(50),
+    emp_salary DECIMAL(10,2),
+    processed_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+4. Flask UI Features
 
-5. Notification System & Scheduling the Process:
+User can enter employee details using a web form
 
-Implementing a Notification System:
-Effective communication ensures stakeholders are informed about the ETL process status. Below are methods to implement notifications:
-1. Email Notifications
-Using Python's smtplib:
-import smtplib
-from email.mime.text import MIMEText
+Data will be saved to employee_staging
 
-def send_email(subject, body, to_addresses):
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = 'etl@yourcompany.com'
-    msg['To'] = ', '.join(to_addresses)
+Displays:
+✔ Successful submission message
+✔ Navigation options
+✔ View Stage Data option
 
-    with smtplib.SMTP('smtp.yourcompany.com') as server:
-        server.login('username', 'password')
-        server.sendmail(msg['From'], to_addresses, msg.as_string())
+Run the UI
+etl_flask_app.py
 
-# Usage
-if etl_log['error_logs']:
-    subject = "ETL Process Failed"
-    body = "\n".join(etl_log['error_logs'])
-else:
-    subject = "ETL Process Completed Successfully"
-    body = f"Records Inserted: {etl_log['records_inserted']}\nRecords Deleted: {etl_log['records_deleted']}"
+Open browser →
+http://127.0.0.1:5000
 
-send_email(subject, body, ['stakeholder1@yourcompany.com', 'stakeholder2@yourcompany.com'])
+5. ETL Script Functionality
+| Step      | Operation                                         |
+| --------- | ------------------------------------------------- |
+| Extract   | Reads data from employee_staging                  |
+| Transform | Trim, clean, validate, convert salary             |
+| Load      | Inserts cleaned data into processed_position_data |
+| Audit     | Prints logs + row count                           |
 
-Implement a schedule:
-Using Apache Airflow: Set Up Airflow DAG
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-from datetime import datetime, timedelta
+Run ETL
+etl_flask_app.py
 
-def etl_job():
-    # ETL process code here
-    pass
+6. Logging & Error Handling
 
-default_args = {
-    'owner': 'etl_team',
-    'depends_on_past': False,
-    'start_date': datetime(2024, 10, 7),
-    'email': ['stakeholder@yourcompany.com'],
-    'email_on_failure': True,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-}
+Try-except blocks used
 
-dag = DAG('etl_process', default_args=default_args, schedule_interval='@daily')
+Ensures DB rollback on failure
 
-etl_task = PythonOperator(
-    task_id='run_etl',
-    python_callable=etl_job,
-    dag=dag
-)
+Audit log prints:
 
+Start time
 
-Integration into a Single Code Solution:
+End time
 
+Number of rows inserted
 
-import logging
-import smtplib
-import requests
-from datetime import datetime
-import pyodbc
-import pandas as pd
+Status (SUCCESS/FAILED)
 
-# Configure Logging
-logging.basicConfig(filename='etl_process.log', level=logging.INFO,
-                    format='%(asctime)s:%(levelname)s:%(message)s')
+7. Folder Structure
 
-# ETL Dictionary
-etl_log = {
-    'start_time': datetime.now(),
-    'end_time': None,
-    'records_inserted': 0,
-    'records_deleted': 0,
-    'error_logs': []
-}
-
-def send_email(subject, body, to_addresses):
-    # Email sending logic
-    pass
+ETL-Project/
+│
+├── app.py                     # Flask UI
+├── templates/
+│      ├── home.html
+│      ├── insert.html
+│      ├── success.html
+│      ├── staging_data.html
+│
+├── static/                    # Images, CSS, JS (optional)
+│
+└── etl_script.py
 
 
-def extract_data():
-    try:
-        # Connect to HANA
-        hana_conn = pyodbc.connect('DRIVER={HDBODBC};SERVERNODE=your_hana_server:port;UID=user;PWD=password')
-        query = """
-            SELECT 
-                snapshot_date,
-                position_id,
-                first_name,
-                last_name,
-                effective_start_date,
-                effective_status,
-                emp_id,
-                email,
-                employment_status,
-                date_of_joining
-            FROM 
-                Position_Snapshot_Data
-            WHERE 
-                snapshot_date >= DATEADD(month, -6, CURRENT_DATE)
-                AND position_id IS NOT NULL
-        """
-        df = pd.read_sql(query, hana_conn)
-        hana_conn.close()
-        logging.info("Data extraction successful.")
-        return df
-    except Exception as e:
-        logging.error(f"Extraction failed: {e}")
-        etl_log['error_logs'].append(str(e))
-        raise
+8. Improvements / Future Enhancements
+| Feature     | Description                  |
+| ----------- | ---------------------------- |
+| Scheduler   | Add Airflow / Cron job       |
+| CI/CD       | Deploy to AWS / Docker       |
+| Validations | Salary limits, dept types    |
+| Dashboard   | Add analytics using Chart.js |
+| Security    | Add login + HTTPS            |
 
-def transform_data(df):
-    try:
-        # Concatenate first and last names
-        df['emp_name'] = df['first_name'] + ' ' + df['last_name']
-        
-        # Calculate years_with_company
-        current_date = pd.to_datetime(datetime.now())
-        df['years_with_company'] = df['date_of_joining'].apply(lambda x: current_date.year - x.year - ((current_date.month, current_date.day) < (x.month, x.day)))
-        
-        # Drop unnecessary columns
-        df = df.drop(['first_name', 'last_name'], axis=1)
-        
-        logging.info("Data transformation successful.")
-        return df
-    except Exception as e:
-        logging.error(f"Transformation failed: {e}")
-        etl_log['error_logs'].append(str(e))
-        raise
+9. Conclusions
 
-def validate_data(df):
-    try:
-        # Check for nulls in critical fields
-        critical_fields = ['emp_id', 'emp_name', 'position_id', 'date_of_joining']
-        if df[critical_fields].isnull().any().any():
-            raise ValueError("Null values found in critical fields.")
-        
-        # Validate email format
-        if not df['email'].str.contains(r'^[\w\.-]+@[\w\.-]+\.\w+$').all():
-            raise ValueError("Invalid email formats detected.")
-        
-        # Validate years_with_company
-        if (df['years_with_company'] < 0).any():
-            raise ValueError("Negative values found in years_with_company.")
-        
-        logging.info("Data validation successful.")
-    except Exception as e:
-        logging.error(f"Validation failed: {e}")
-        etl_log['error_logs'].append(str(e))
-        raise
+This project demonstrates a real-world ETL flow integrated with a web-based UI and relational database. It is suitable for:
 
-def load_data(df):
-    try:
-        # Connect to SQL Server
-        sql_conn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER=your_sql_server;DATABASE=your_db;UID=user;PWD=password')
-        cursor = sql_conn.cursor()
-        
-        # Insert Data
-        for index, row in df.iterrows():
-            cursor.execute("""
-                INSERT INTO Processed_Position_Data 
-                (snapshot_date, position_id, emp_id, emp_name, email, employment_status, effective_start_date, effective_status, date_of_joining, years_with_company)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, 
-            row['snapshot_date'], row['position_id'], row['emp_id'], row['emp_name'], row['email'],
-            row['employment_status'], row['effective_start_date'], row['effective_status'], 
-            row['date_of_joining'], row['years_with_company'])
-        
-        sql_conn.commit()
-        records_inserted = len(df)
-        etl_log['records_inserted'] += records_inserted
-        logging.info(f"Data loading successful. Records inserted: {records_inserted}")
-        sql_conn.close()
-    except Exception as e:
-        logging.error(f"Loading failed: {e}")
-        etl_log['error_logs'].append(str(e))
-        raise
-
-def main_etl():
-    try:
-        logging.info("ETL process started.")
-        df = extract_data()
-        df = transform_data(df)
-        validate_data(df)
-        load_data(df)
-    except Exception as e:
-        logging.error("ETL process encountered errors.")
-    finally:
-        etl_log['end_time'] = datetime.now()
-        # Send Notifications
-        if etl_log['error_logs']:
-            subject = "ETL Process Failed"
-            body = "\n".join(etl_log['error_logs'])
-            send_email(subject, body, ['stakeholder1@yourcompany.com'])
-            
-        else:
-            subject = "ETL Process Completed Successfully"
-            body = f"Records Inserted: {etl_log['records_inserted']}\nRecords Deleted: {etl_log['records_deleted']}"
-            send_email(subject, body, ['stakeholder1@yourcompany.com'])
-        logging.info("ETL process completed.")
-
-if __name__ == "__main__":
-    main_etl()
-
-
-
-
-
+✔ Portfolio
+✔ Interview Discussion
+✔ POC for Data Integration
+✔ Learning ETL & Flask
 

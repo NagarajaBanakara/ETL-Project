@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Edit Employee</h2>
+
+<form method="post">
+    <input class="form-control mb-2" name="position_id" value="{{emp.position_id}}" required>
+    <input class="form-control mb-2" name="emp_name" value="{{emp.emp_name}}" required>
+    <input class="form-control mb-2" name="email" value="{{emp.email}}" required>
+    <input class="form-control mb-2" name="employment_status" value="{{emp.employment_status}}" required>
+    <input type="date" class="form-control mb-2" name="effective_start_date" value="{{emp.effective_start_date}}" required>
+    <input class="form-control mb-2" name="effective_status" value="{{emp.effective_status}}" required>
+    <input type="date" class="form-control mb-2" name="date_of_joining" value="{{emp.date_of_joining}}" required>
+    <input class="form-control mb-2" name="years_with_company" value="{{emp.years_with_company}}" required>
+
+    <button class="btn btn-primary">Update</button>
+</form>
+{% endblock %}
