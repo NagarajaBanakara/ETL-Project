@@ -92,29 +92,55 @@ def validate_data(df):
         etl_log['error_logs'].append(str(e))
         raise
 
+
 def load_data(df):
     try:
+        if df.empty:
+            logging.warning("No data found to load into MySQL.")
+            return
+
         conn = mysql.connector.connect(**mysql_config)
         cursor = conn.cursor()
 
         insert_query = """
-            INSERT INTO processed_position_data 
+            INSERT INTO etl.processed_position_data 
             (snapshot_date, position_id, emp_id, emp_name, email, employment_status, 
              effective_start_date, effective_status, date_of_joining, years_with_company)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """
 
-        cursor.executemany(insert_query, df.to_records(index=False))
+        data_to_insert = [
+            (
+                row.snapshot_date,
+                row.position_id,
+                row.emp_id,
+                row.emp_name,
+                row.email,
+                row.employment_status,
+                row.effective_start_date,
+                row.effective_status,
+                row.date_of_joining,
+                row.years_with_company
+            )
+            for row in df.itertuples(index=False)
+        ]
+
+        cursor.executemany(insert_query, data_to_insert)
         conn.commit()
 
-        etl_log['records_inserted'] = len(df)
-        logging.info(f"Inserted {len(df)} records into MySQL.")
+        inserted = cursor.rowcount
+        etl_log['records_inserted'] = inserted
 
+        logging.info(f"{inserted} record(s) inserted into MySQL.")
+
+        cursor.close()
         conn.close()
+
     except Exception as e:
         logging.error("Loading failed: " + str(e))
         etl_log['error_logs'].append(str(e))
         raise
+
 
 def write_audit_log():
     try:
@@ -125,7 +151,7 @@ def write_audit_log():
         status = "FAILED" if etl_log['error_logs'] else "SUCCESS"
 
         cursor.execute("""
-            INSERT INTO etl_audit_log
+            INSERT INTO etl.etl_audit_log
             (start_time, end_time, duration_sec, records_inserted, records_deleted, status, error_logs)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
